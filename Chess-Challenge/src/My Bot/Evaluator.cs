@@ -110,7 +110,7 @@ public class Evaluator : IEvaluator
             // get info about whether square is attacked
             // we only have board.IsSquareAttacked(Square square, bool isWhite) so we need to iterate over all squares
             // and check if they are attacked by white or black
-            for (; i < 64; i++)
+            while (i++ < 63)
             {
                 Square square = new Square(i);
                 if (!stm) board.ForceSkipTurn(); // set stm to white
