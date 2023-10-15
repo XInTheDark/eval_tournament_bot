@@ -4,7 +4,7 @@ using System;
 public static class Values
 {
     // null, pawn, knight, bishop, rook, queen, king
-    public static int[] pieceValues = { 0, 126, 825, 781, 1276, 2538, 40000 };
+    public static int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
     
     // Psqt
     public static int[,] allPsqt = new int[,]
