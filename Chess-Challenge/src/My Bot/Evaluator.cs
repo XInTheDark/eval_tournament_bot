@@ -1,10 +1,24 @@
 using ChessChallenge.API;
 using System;
+using System.Drawing;
 
 public static class Values
 {
     // null, pawn, knight, bishop, rook, queen, king
     public static readonly int[] pieceValues = { 0, 126, 825, 781, 1276, 2538, 40000 };
+    
+    // Psqt
+    public static readonly int[,] knightPsqt = new int[8,4]
+    {
+        {-136, -78, -61, -47},
+        {-72, -47, 22, -3},
+        {-50, -22, -1, 20},
+        {-35,  3, 27, 39},
+        {-40, -2, 31, 45},
+        {-25, 15, 58, 42},
+        {-68, -37, -5, 30},
+        {-150,-84, -56, -24}
+    };
 }
 
 public class Evaluator : IEvaluator
@@ -19,16 +33,26 @@ public class Evaluator : IEvaluator
         {
             board.UndoSkipTurn();
         }
+
+        static int psqIndex(int i)
+        {
+            if (i < 4) return i;
+            return 7 - i;
+        }
+        static int ColorV(bool color)
+        {
+            return color ? 1 : -1;
+        }
         
         bool stm = board.IsWhiteToMove;
-        int score = 0, materialScore = 0;
+        int materialScore = 0;
         // Material
         var pieceList = board.GetAllPieceLists();
         foreach (var list in pieceList)
         {
             foreach (var piece in list)
             {
-                materialScore += Values.pieceValues[(int)piece.PieceType] * (piece.IsWhite ? 1 : -1);
+                materialScore += Values.pieceValues[(int)piece.PieceType] * ColorV(piece.IsWhite);
             }
         }
         
@@ -74,7 +98,19 @@ public class Evaluator : IEvaluator
             
         }
         
-        score = materialScore + mobilityScore + spaceScore;
+        // PSQT
+        int psqtScore = 0;
+        // knight
+        foreach (bool color in new[] { true, false })
+        {
+            foreach (var knight in board.GetPieceList(PieceType.Knight, color))
+            {
+                int sq = knight.Square.Index, index = color ? sq : 63 - sq;
+                psqtScore += Values.knightPsqt[index >> 3, psqIndex(index % 8)] * ColorV(color);
+            }
+        }
+
+        int score = materialScore + mobilityScore + spaceScore + psqtScore;
         
         // Rule50
         score = score * (200 - board.FiftyMoveCounter) / 200;
