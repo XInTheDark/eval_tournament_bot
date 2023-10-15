@@ -9,7 +9,19 @@ public static class Values
     // Psqt
     public static int[,] allPsqt = new int[,]
     {
-        // 0 - Knight
+        // 0 - Pawn
+        {
+            0, 0, 0, 0,
+            -4, -1, 10, 16,
+            -9, -15, 17, 23,
+            2, -15, 8, 29,
+            11, 2, -4, 7,
+            14, 4, 7, 18,
+            -5, 8, -7, -3,
+            0, 0, 0, 0
+        },
+        
+        // 1 - Knight
         {
             -136, -78, -61, -47,
             -72, -47, 22, -3,
@@ -21,17 +33,17 @@ public static class Values
             -150, -84, -56, -24
         },
         
-        // 1 - Rook
-        {
-            -21, -17, -12, -7,
-            -16, -11, -4, 2,
-            -7, -9, -1, 1,
-            -9, -2, -6, 0,
-            -14, -5, 2, -2,
-            -8, 0, 0, 11,
-            1, 8, 18, 14,
-            -10, -18, 9, 11
-        },
+        // 2 - Rook
+        // {
+        //     -21, -17, -12, -7,
+        //     -16, -11, -4, 2,
+        //     -7, -9, -1, 1,
+        //     -9, -2, -6, 0,
+        //     -14, -5, 2, -2,
+        //     -8, 0, 0, 11,
+        //     1, 8, 18, 14,
+        //     -10, -18, 9, 11
+        // },
         
         // 2 - King
         {
@@ -119,12 +131,12 @@ public class Evaluator : IEvaluator
         // PSQT
         // knight
         foreach (bool color in new[] { true, false })
-            foreach (PieceType pc in new[] { PieceType.Knight, PieceType.Rook, PieceType.King})
+            foreach (PieceType pc in new[] { PieceType.Pawn, PieceType.Knight, PieceType.King})
                 foreach (var x in board.GetPieceList(pc, color))
                 {
                     i = x.Square.Index; j = color ? i : 63 - i;
-                    psqtScore += Values.allPsqt[(int)pc - 1 >> 1, psqIndex(j)] * ColorV(color);
-                    // psqt types: 2 (knight) -> 0, 4 (rook) -> 1, 6 (king) -> 2
+                    psqtScore += Values.allPsqt[Math.Min((int)pc, 4) >> 1, psqIndex(j)] * ColorV(color);
+                    // psqt types: 1 (pawn) -> 0, 2 (knight) -> 1, 6 (king) -> 2
                 }
 
         int score = materialScore + mobilityScore + spaceScore + psqtScore;
