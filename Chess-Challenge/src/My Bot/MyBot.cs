@@ -114,18 +114,20 @@ public class MyBot : IChessBot
         return best;
     }
 
-    public Move Think(Board board, Timer timer)
+    public (Move, int) Think(Board board, Timer timer)
     {
         bestmoveRoot = Move.NullMove;
+        int score = 0;
         // https://www.chessprogramming.org/Iterative_Deepening
         for(int depth = 1; depth <= 50; depth++) {
-            int score = Search(board, timer, -30000, 30000, depth, 0);
+            int iterationScore = Search(board, timer, -30000, 30000, depth, 0);
 
             // Out of time
             if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
                 break;
+            score = iterationScore;
         }
-        return bestmoveRoot.IsNull ? board.GetLegalMoves()[0] : bestmoveRoot;
+        return (bestmoveRoot.IsNull ? board.GetLegalMoves()[0] : bestmoveRoot, score);
     }
 }
 

@@ -13,7 +13,7 @@ namespace ChessChallenge.Application
     {
       
         // Board settings
-        const int squareSize = 100;
+        const int squareSize = 90;
         const double moveAnimDuration = 0.15;
         bool whitePerspective = true;
 
@@ -48,6 +48,9 @@ namespace ChessChallenge.Application
         double moveAnimStartTime;
         bool isAnimatingMove;
 
+        public EvalBar UpperEval;
+        public EvalBar LowerEval;
+        
 
         public enum HighlightType
         {
@@ -69,6 +72,18 @@ namespace ChessChallenge.Application
             squareColOverrides = new Dictionary<int, Color>();
             topTextCol = inactiveTextCol;
             bottomTextCol = inactiveTextCol;
+            
+            int boardStartX = -squareSize * 4;
+            int boardStartY = -squareSize * 4;
+            UpperEval = new EvalBar(new Rectangle(boardStartX - 12, boardStartY - squareSize * 1.25f, squareSize * 8 + 24,
+                squareSize / 2));
+            LowerEval = new EvalBar(new Rectangle(boardStartX - 12, boardStartY + 8 * squareSize + squareSize * 0.75f,
+                squareSize * 8 + 24, squareSize / 2));
+        }
+
+        public bool IsWhitePerspective()
+        {
+            return whitePerspective;
         }
 
         public void SetPerspective(bool whitePerspective)
@@ -203,6 +218,9 @@ namespace ChessChallenge.Application
 
             DrawBorder();
             ForEachSquare(DrawSquare);
+            
+            UpperEval.Draw();
+            LowerEval.Draw();
             
             if (isAnimatingMove)
             {

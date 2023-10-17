@@ -3,6 +3,7 @@ namespace ChessChallenge.API
 {
     public interface IChessBot
     {
-        Move Think(Board board, Timer timer);
+        (Move, int) Think(Board board, Timer timer);
+        
     }
 }

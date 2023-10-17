@@ -43,6 +43,9 @@ namespace ChessChallenge.Application
         public BotMatchStats BotStatsB {get;private set;}
         bool botAPlaysWhite;
 
+        private EvalBar whiteEval;
+        private EvalBar blackEval;
+        
 
         // Bot task
         AutoResetEvent botTaskWaitHandle;
@@ -147,7 +150,15 @@ namespace ChessChallenge.Application
             try
             {
                 API.Timer timer = new(PlayerToMove.TimeRemainingMs, PlayerNotOnMove.TimeRemainingMs, GameDurationMilliseconds, IncrementMilliseconds);
-                API.Move move = PlayerToMove.Bot.Think(botBoard, timer);
+                (API.Move move, int eval) = PlayerToMove.Bot.Think(botBoard, timer);
+                if (board.IsWhiteToMove)
+                {
+                    whiteEval.SetEval(eval);
+                }
+                else
+                {
+                    blackEval.SetEval(-eval);
+                }
                 return new Move(move.RawValue);
             }
             catch (Exception e)
@@ -181,6 +192,7 @@ namespace ChessChallenge.Application
                     var move = GetBotMove();
                     double thinkDuration = Raylib.GetTime() - startThinkTime;
                     PlayerToMove.UpdateClock(thinkDuration);
+                    
                     OnMoveChosen(move);
                 }
             }
@@ -201,6 +213,17 @@ namespace ChessChallenge.Application
             else
             {
                 boardUI.SetPerspective(PlayerWhite.Bot is MyBot);
+            }
+
+            if (boardUI.IsWhitePerspective())
+            {
+                whiteEval = boardUI.LowerEval;
+                blackEval = boardUI.UpperEval;
+            }
+            else
+            {
+                whiteEval = boardUI.UpperEval;
+                blackEval = boardUI.LowerEval;
             }
         }
 
