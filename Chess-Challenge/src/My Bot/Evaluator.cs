@@ -76,31 +76,44 @@ public class Evaluator : IEvaluator
         }
         
         // init variables
-        bool stm = board.IsWhiteToMove;
+        var pieceList = board.GetAllPieceLists();
+        bool stm = board.IsWhiteToMove, endgame = pieceList.Length <= 12;
         int i = 0; // temp variable used to save tokens
         
         int materialScore = 0, mobilityScore = 0, spaceScore = 0, psqtScore = 0; 
         // init everything here to save tokens
         
         // Material
-        var pieceList = board.GetAllPieceLists();
         foreach (var list in pieceList)
             foreach (var piece in list)
-            {
                 materialScore += Values.pieceValues[(int)piece.PieceType] * ColorV(piece.IsWhite);
-            }
         
         
-        // Mobility
-        mobilityScore += board.GetLegalMoves().Length >> 2;
-        board.ForceSkipTurn();
-        mobilityScore += board.GetLegalMoves().Length >> 2;
-        board.UndoSkipTurn();
+        // PSQT
+        foreach (bool color in new[] { true, false })
+        foreach (PieceType pc in new[] { PieceType.Pawn, PieceType.Knight, PieceType.King})
+        foreach (var x in board.GetPieceList(pc, color))
+        {
+            i = x.Square.Index;
+            // j = color ? i : 63 - i;
+            psqtScore += Values.allPsqt[Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)] * ColorV(color);
+            // psqt types: 1 (pawn) -> 0, 2 (knight) -> 1, 6 (king) -> 2
+        }
         
+        
+        // Mobility -> skip in endgames
+        if (!endgame)
+        {
+            mobilityScore += board.GetLegalMoves().Length >> 2;
+            board.ForceSkipTurn();
+            mobilityScore += board.GetLegalMoves().Length >> 2;
+            board.UndoSkipTurn();
+        }
+
         // Passed pawns (todo)
         
-        // Space
-        if (Math.Abs(materialScore) < 2000) // skip space if material eval is high
+        // Space -> skip in endgames
+        if (Math.Abs(materialScore) < 2000 && !endgame) // skip space if material eval is high
         {
             // bitboard representing C file
             // ulong CDEFfiles = 0x3c3c3c3c3c3c3c3c,
@@ -127,20 +140,8 @@ public class Evaluator : IEvaluator
             }
             
             // count number of safe squares
-            spaceScore = BitboardHelper.GetNumberOfSetBits(spaceMaskWhite) - BitboardHelper.GetNumberOfSetBits(spaceMaskBlack);
+            spaceScore = 2 * (BitboardHelper.GetNumberOfSetBits(spaceMaskWhite) - BitboardHelper.GetNumberOfSetBits(spaceMaskBlack));
         }
-        
-        // PSQT
-        // knight
-        foreach (bool color in new[] { true, false })
-            foreach (PieceType pc in new[] { PieceType.Pawn, PieceType.Knight, PieceType.King})
-                foreach (var x in board.GetPieceList(pc, color))
-                {
-                    i = x.Square.Index;
-                    // j = color ? i : 63 - i;
-                    psqtScore += Values.allPsqt[Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)] * ColorV(color);
-                    // psqt types: 1 (pawn) -> 0, 2 (knight) -> 1, 6 (king) -> 2
-                }
 
         int score = materialScore + mobilityScore + spaceScore + psqtScore;
         
