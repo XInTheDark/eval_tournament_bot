@@ -21,11 +21,12 @@ public static class Values
 public class Evaluator : IEvaluator
 {
     public sbyte[] PawnPsqt, KnightPsqt, RookPsqt, KingPsqt;
+    public int i, j; // temp variable used to save tokens
 
     public void extract(int pc, ref sbyte[] psqt)
     {
         var decimals = new List<decimal>();
-        for (int i = 0; i < 3; i++)
+        for (i = 0; i < 3; i++)
             decimals.Add(Values.packedPsqt[pc, i]);
         psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
     }
@@ -62,7 +63,6 @@ public class Evaluator : IEvaluator
         // init variables
         var pieceList = board.GetAllPieceLists();
         bool stm = board.IsWhiteToMove, endgame = pieceList.Length <= 12;
-        int i = 0, j; // temp variable used to save tokens
         
         int materialScore = 0, mobilityScore = 0, spaceScore = 0, psqtScore = 0; 
         // init everything here to save tokens
@@ -87,14 +87,14 @@ public class Evaluator : IEvaluator
                          * ColorV(color);
         }
         
-        // Mobility -> skip in endgames
-        if (!endgame)
-        {
-            mobilityScore += board.GetLegalMoves().Length >> 2;
-            board.ForceSkipTurn();
-            mobilityScore += board.GetLegalMoves().Length >> 2;
-            board.UndoSkipTurn();
-        }
+        // // Mobility -> skip in endgames
+        // if (!endgame)
+        // {
+        //     mobilityScore += board.GetLegalMoves().Length >> 2;
+        //     board.ForceSkipTurn();
+        //     mobilityScore += board.GetLegalMoves().Length >> 2;
+        //     board.UndoSkipTurn();
+        // }
 
         // Passed pawns (todo)
         
@@ -111,6 +111,7 @@ public class Evaluator : IEvaluator
             // get info about whether square is attacked
             // we only have board.IsSquareAttacked(Square square, bool isWhite) so we need to iterate over all squares
             // and check if they are attacked by white or black
+            i = 0;
             while (i++ < 63)
             {
                 Square square = new Square(i);
