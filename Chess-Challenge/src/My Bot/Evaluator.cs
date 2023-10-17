@@ -77,7 +77,7 @@ public class Evaluator : IEvaluator
         
         // init variables
         bool stm = board.IsWhiteToMove;
-        int i = 0, j; // temp variable used to save tokens
+        int i = 0; // temp variable used to save tokens
         
         int materialScore = 0, mobilityScore = 0, spaceScore = 0, psqtScore = 0; 
         // init everything here to save tokens
@@ -96,6 +96,8 @@ public class Evaluator : IEvaluator
         board.ForceSkipTurn();
         mobilityScore += board.GetLegalMoves().Length >> 2;
         board.UndoSkipTurn();
+        
+        // Passed pawns (todo)
         
         // Space
         if (Math.Abs(materialScore) < 2000) // skip space if material eval is high
@@ -134,8 +136,9 @@ public class Evaluator : IEvaluator
             foreach (PieceType pc in new[] { PieceType.Pawn, PieceType.Knight, PieceType.King})
                 foreach (var x in board.GetPieceList(pc, color))
                 {
-                    i = x.Square.Index; j = color ? i : 63 - i;
-                    psqtScore += Values.allPsqt[Math.Min((int)pc, 4) >> 1, psqIndex(j)] * ColorV(color);
+                    i = x.Square.Index;
+                    // j = color ? i : 63 - i;
+                    psqtScore += Values.allPsqt[Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)] * ColorV(color);
                     // psqt types: 1 (pawn) -> 0, 2 (knight) -> 1, 6 (king) -> 2
                 }
 
@@ -143,6 +146,9 @@ public class Evaluator : IEvaluator
         
         // // Rule50
         // score = score * (200 - board.FiftyMoveCounter) / 200;
+        
+        // Optimism
+        if (score > 0) score = score * 11 / 10;
         
         return stm ? score : -score;
     }
