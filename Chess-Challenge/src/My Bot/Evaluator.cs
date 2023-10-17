@@ -25,8 +25,8 @@ public class Evaluator : IEvaluator
     public void extract(int pc, ref sbyte[] psqt)
     {
         var decimals = new List<decimal>();
-        for (int i = 0; i < 4; i++)
-            decimals.Add(Values.packedPsqt[i, pc]);
+        for (int i = 0; i < 3; i++)
+            decimals.Add(Values.packedPsqt[pc, i]);
         psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
     }
     public void Init()
@@ -81,8 +81,10 @@ public class Evaluator : IEvaluator
             i = x.Square.Index;
             j = color ? i : 63 - i;
             // Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)
-            psqtScore += Query((int)pc == 6 ? 3 : (int)pc >> 1, j) * ColorV(color);
-            // psqt types: 1 (pawn) -> 0, 2 (knight) -> 1, 6 (king) -> 2
+            psqtScore += Query((int)pc == 6 ? 3 : (int)pc >> 1, // piece type
+                             j / 8 * 4 + Math.Min(j % 8, 7 - j % 8) // map square to psqt index
+                             )
+                         * ColorV(color);
         }
         
         // Mobility -> skip in endgames
