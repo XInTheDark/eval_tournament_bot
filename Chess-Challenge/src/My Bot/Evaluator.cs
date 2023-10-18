@@ -23,114 +23,30 @@ public class Values
 
 public class Evaluator : IEvaluator
 {
-    public static int[,] psqts = new int[6, 32]; // piece type, square
-    public int i, j, k; // temp variable used to save tokens
+    static sbyte[] extracted = new [] { 4835740172228143389605888m, 3725966229785041404795944960m, 9925437317648294096856026122m, 7439894945065839599497190422m, 6824471569290105484926130187m, 3729593062656459889655158280m, 3416485942401394560996215820m, 3722339396986527150863289100m, 3730797229144042596224077066m, 4033038055064903607300524809m, 3725966229785040296694713357m, 8691024570942323425314212874m, 8404603969338570566065856031m, 10577058147952498327309850397m, 11198436629837456595623813170m, 10262713841539082151653614642m, 11194824038360257114076357676m, 11506736215353682221605593389m, 10885334121270385542618228012m, 9330641331773528397107176747m, 9952033999352176612399980836m, 9952033888453563557009497640m, 11183934168799447048939643175m, 11192396631091141179377067049m, 11509144788282051982336402736m, 11511567325394838938618438440m, 12128124123529375646504592948m, 11196037575865608699974395444m, 11507945196587282138747840047m, 12126915234676150097073284142m, 11199654963715542975752709681m, 10573426629896321049937454382m, 11191192409262760003074008109m, 20508530502389434934682985259m, 20507321539603993089057767997m, 20188155696939508234711351619m, 19578857083781397143992877374m, 19883506353574346661423562814m, 20186951327391370370698920000m, 19872621187934693809601724476m, 19569176140185172333450379320m, 19570394473915476624092315192m, 19879879483664765168226352957m, 36051670691094698235277492286m, 36673329051040525959076739199m, 38529044351320487927960402047m, 36673324309794668677999589503m, 36361421467141412267881364351m, 38530253277356278650752628861m, 37601802969898435041120189055m, 36982790448668887234442656127m, 35431757511785702639387244159m, 34816395379919747730636763775m, 36053117048580488939226231167m, 78612800455822947278967828861m, 78615227715880246295746182910m, 1231919022235616078678852096m, 926051308246941403396899324m, 1235541058664778757218436609m, 78911428598392484235516314621m, 614153095436244560004317184m, 1230705263296431394519973882m, 309480324132459026510119676m, 77370034121605399932059714296m, 78304538410084378361276333060m, 64258m }.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => (sbyte[])(Array)BitConverter.GetBytes(y))).ToArray();
+    int[] evalValues = Enumerable.Range(0, 396).Select(i => extracted[i * 2] | extracted[i * 2 + 1] << 16).ToArray();
+    public int Evaluate(Board board, Timer timer) {
 
-    public Evaluator() // init
-    {
-        // init psqts - extract from packed
-        for (i = 0; i < 6; i++)
-        {
-            var psqt = new sbyte[32];
-            extract(i, out psqt);
-            for (j = 0; j < 32; j++)
-                psqts[i, j] = psqt[j] * 2; // 2x quantisation
-        }
-    }
+        int score = 0,
+            phase = 0;
 
-    public void extract(int pc, out sbyte[] psqt)
-    {
-        var decimals = new List<decimal>();
-        for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
-            decimals.Add(Values.packedPsqt[pc, k]);
-        psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
-    }
-    
-    public int Evaluate(Board board, Timer timer)
-    {
-        int ColorV(bool color)
+        foreach (bool isWhite in new[] {!board.IsWhiteToMove, board.IsWhiteToMove})
         {
-            return color ? 1 : -1;
-        }
-        
-        // init variables
-        var pieceList = board.GetAllPieceLists();
-        bool stm = board.IsWhiteToMove, endgame = pieceList.Length <= 12;
-        
-        int materialScore = 0, mobilityScore = 0, spaceScore = 0, psqtScore = 0; 
-        // init everything here to save tokens
-        
-        // Material
-        foreach (var list in pieceList)
-            foreach (var piece in list)
-                materialScore += Values.pieceValues[(int)piece.PieceType] * ColorV(piece.IsWhite);
-        
-        
-        // PSQT
-        foreach (bool color in new[] { true, false })
-           for(k = 1; k < 7; k++) // piece type
-              foreach (var x in board.GetPieceList((PieceType)k, color))
-        {
-            i = x.Square.Index;
-            j = color ? i : 63 - i;
-            // Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)
-            psqtScore += psqts[k - 1, // piece type
-                             j / 8 * 4 + Math.Min(j % 8, 7 - j % 8) // map square to psqt index
-                             ]
-                         * ColorV(color);
-        }
-        
-        // // Mobility -> skip in endgames
-        // if (!endgame)
-        // {
-        //     mobilityScore += board.GetLegalMoves().Length >> 2;
-        //     board.ForceSkipTurn();
-        //     mobilityScore += board.GetLegalMoves().Length >> 2;
-        //     board.UndoSkipTurn();
-        // }
+            score = -score;
 
-        // Passed pawns (todo)
-        
-        // Space -> skip in endgames
-        if (Math.Abs(materialScore) < 2000 && !endgame) // skip space if material eval is high
-        {
-            // bitboard representing C file
-            // ulong CDEFfiles = 0x3c3c3c3c3c3c3c3c,
-            //     Rank123 = 0xffffff0000000000,
-            //     Rank678 = 0xffffff; 
-            ulong spaceMaskWhite = 0x3c3c3c3c3c3c3c3c & 0xffffff0000000000,
-                spaceMaskBlack = 0x3c3c3c3c3c3c3c3c & 0xffffff;
-            
-            // get info about whether square is attacked
-            // we only have board.IsSquareAttacked(Square square, bool isWhite) so we need to iterate over all squares
-            // and check if they are attacked by white or black
-            i = 0;
-            while (i++ < 63)
+            ulong bitboard = isWhite ? board.WhitePiecesBitboard : board.BlackPiecesBitboard;
+
+            while (bitboard != 0)
             {
-                Square square = new Square(i);
-                if (!stm) board.ForceSkipTurn(); // set stm to white
-                if (board.SquareIsAttackedByOpponent(square))
-                    BitboardHelper.ClearSquare(ref spaceMaskWhite, square); // set to 0 if unsafe
+                int sq = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard),
+                    pieceIndex = (int)board.GetPiece(new (sq)).PieceType;
 
-                if (stm) board.ForceSkipTurn(); // set stm to black
-                if (board.SquareIsAttackedByOpponent(square))
-                    BitboardHelper.ClearSquare(ref spaceMaskBlack, square); // set to 0 if unsafe
-                
-                board.UndoSkipTurn();
+                if (!isWhite) sq ^= 56;
+                phase += evalValues[pieceIndex];
+                score += evalValues[pieceIndex * 64 + sq - 57] << 3;
             }
-            
-            // count number of safe squares
-            spaceScore = 2 * (BitboardHelper.GetNumberOfSetBits(spaceMaskWhite) - BitboardHelper.GetNumberOfSetBits(spaceMaskBlack));
         }
 
-        int score = materialScore + mobilityScore + spaceScore + psqtScore;
-        
-        // // Rule50
-        // score = score * (200 - board.FiftyMoveCounter) / 200;
-        
-        // Optimism
-        if (score > 0) score = score * 11 / 10;
-        
-        return stm ? score : -score;
+        return ((short)score * phase + (score + 0x8000 >> 16) * (24 - phase)) / 24;
     }
 }
