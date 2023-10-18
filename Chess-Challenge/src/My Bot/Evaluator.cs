@@ -7,6 +7,8 @@ public class Values
 {
     // null, pawn, knight, bishop, rook, queen, king
     public static int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
+    // bishop, rook, queen
+    public static int[] mobilityValues  = { 6, 5, 3, 0 };
     
     // Packed Psqt
     public static decimal[,] packedPsqt =
@@ -25,6 +27,7 @@ public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[6, 32]; // piece type, square
     public int i, j, k; // temp variable used to save tokens
+    public bool b1;
 
     public Evaluator() // init
     {
@@ -57,73 +60,45 @@ public class Evaluator : IEvaluator
         var pieceList = board.GetAllPieceLists();
         bool stm = board.IsWhiteToMove, endgame = pieceList.Length <= 12;
         
-        int materialScore = 0, mobilityScore = 0, spaceScore = 0, psqtScore = 0; 
+        int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
         // init everything here to save tokens
         
-        // Material
+        // Material and mobility
         foreach (var list in pieceList)
-            foreach (var piece in list)
-                materialScore += Values.pieceValues[(int)piece.PieceType] * ColorV(piece.IsWhite);
-        
-        
+        foreach (var piece in list)
+        {
+            b1 = piece.IsWhite;
+            j = (int)piece.PieceType;
+            materialScore += Values.pieceValues[j] * ColorV(b1);
+            
+            // Mobility
+            // The more squares you are able to attack, the more flexible your position is.
+            if (j < 3) continue; // skip pawns and knights
+            var mob = BitboardHelper.GetPieceAttacks((PieceType)j, piece.Square, board, b1) & 
+                      ~(b1 ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
+            mobilityScore += Values.mobilityValues[j-3] * BitboardHelper.GetNumberOfSetBits(mob) * ColorV(b1)
+            // King attacks
+            + 2 * Values.mobilityValues[j-3] * BitboardHelper.GetNumberOfSetBits(mob & BitboardHelper.GetKingAttacks(board.GetKingSquare(!b1)));
+        }
+
+
         // PSQT
         foreach (bool color in new[] { true, false })
-           for(k = 1; k < 7; k++) // piece type
+           for (k = 1; k < 7; k++) // piece type
               foreach (var x in board.GetPieceList((PieceType)k, color))
         {
             i = x.Square.Index;
-            j = color ? i : 63 - i;
+            if (!color) i = 63 - i; // flip square if black
             // Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)
             psqtScore += psqts[k - 1, // piece type
-                             j / 8 * 4 + Math.Min(j % 8, 7 - j % 8) // map square to psqt index
+                             i / 8 * 4 + Math.Min(i % 8, 7 - i % 8) // map square to psqt index
                              ]
                          * ColorV(color);
         }
         
-        // // Mobility -> skip in endgames
-        // if (!endgame)
-        // {
-        //     mobilityScore += board.GetLegalMoves().Length >> 2;
-        //     board.ForceSkipTurn();
-        //     mobilityScore += board.GetLegalMoves().Length >> 2;
-        //     board.UndoSkipTurn();
-        // }
-
         // Passed pawns (todo)
-        
-        // Space -> skip in endgames
-        if (Math.Abs(materialScore) < 2000 && !endgame) // skip space if material eval is high
-        {
-            // bitboard representing C file
-            // ulong CDEFfiles = 0x3c3c3c3c3c3c3c3c,
-            //     Rank123 = 0xffffff0000000000,
-            //     Rank678 = 0xffffff; 
-            ulong spaceMaskWhite = 0x3c3c3c3c3c3c3c3c & 0xffffff0000000000,
-                spaceMaskBlack = 0x3c3c3c3c3c3c3c3c & 0xffffff;
-            
-            // get info about whether square is attacked
-            // we only have board.IsSquareAttacked(Square square, bool isWhite) so we need to iterate over all squares
-            // and check if they are attacked by white or black
-            i = 0;
-            while (i++ < 63)
-            {
-                Square square = new Square(i);
-                if (!stm) board.ForceSkipTurn(); // set stm to white
-                if (board.SquareIsAttackedByOpponent(square))
-                    BitboardHelper.ClearSquare(ref spaceMaskWhite, square); // set to 0 if unsafe
 
-                if (stm) board.ForceSkipTurn(); // set stm to black
-                if (board.SquareIsAttackedByOpponent(square))
-                    BitboardHelper.ClearSquare(ref spaceMaskBlack, square); // set to 0 if unsafe
-                
-                board.UndoSkipTurn();
-            }
-            
-            // count number of safe squares
-            spaceScore = 2 * (BitboardHelper.GetNumberOfSetBits(spaceMaskWhite) - BitboardHelper.GetNumberOfSetBits(spaceMaskBlack));
-        }
-
-        int score = materialScore + mobilityScore + spaceScore + psqtScore;
+        int score = materialScore + mobilityScore + psqtScore;
         
         // // Rule50
         // score = score * (200 - board.FiftyMoveCounter) / 200;
