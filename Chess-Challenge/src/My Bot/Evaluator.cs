@@ -103,8 +103,8 @@ public class Evaluator : IEvaluator
                     if (k != 1) continue; // non-pawn
                     // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
                     bool is_passed = true;
-                    for (j = i; j < 56; j += 8) // j + 8 < 64
-                        if (BitboardHelper.SquareIsSet(pawnBB, new Square(i + 8))) is_passed = false;
+                    for (j = i+8; j < 64; j += 8) // j + 8 < 64
+                        if (BitboardHelper.SquareIsSet(pawnBB, new Square(j))) is_passed = false;
 
                     if (is_passed)
                         // this is a passed pawn!
