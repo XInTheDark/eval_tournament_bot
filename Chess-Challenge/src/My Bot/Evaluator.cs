@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public static class Values
+public class Values
 {
     // null, pawn, knight, bishop, rook, queen, king
     public static int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
@@ -11,50 +11,43 @@ public static class Values
     // Packed Psqt
     public static decimal[,] packedPsqt = new decimal[,]
     {
+        // x2 quantisation
         {4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m}, // pawn (1)
         {3404287441579403956711512508m, 6534281595731031271123255791m, 17646465313090236126m}, // knight (2)
+        {2164014922328260742594755565m, 1859341949334155696276046588m, 17868308529803295480m}, // bishop (3)
         {1194703523763084064389366m, 1547429716061480218496204796m, 361686527623365632m}, // rook (4)
+        {935717900348897334573004544m, 1240376670144116481419706882m, 17504344892242065654m}, // queen (5)
         {7167995988612654671579075140m, 2500229339330604076760118057m, 51387926m}, // king (6)
     };
 }
 
 public class Evaluator : IEvaluator
 {
-    public sbyte[] PawnPsqt, KnightPsqt, RookPsqt, KingPsqt;
-    public int i, j; // temp variable used to save tokens
+    public static int[,] psqts = new int[6, 32]; // piece type, square
+    public int i, j, k; // temp variable used to save tokens
 
-    public void extract(int pc, ref sbyte[] psqt)
+    public Evaluator() // init
+    {
+        // init psqts - extract from packed
+        for (i = 0; i < 6; i++)
+        {
+            var psqt = new sbyte[32];
+            extract(i, out psqt);
+            for (j = 0; j < 32; j++)
+                psqts[i, j] = psqt[j] * 2; // 2x quantisation
+        }
+    }
+
+    public void extract(int pc, out sbyte[] psqt)
     {
         var decimals = new List<decimal>();
-        for (i = 0; i < 3; i++)
-            decimals.Add(Values.packedPsqt[pc, i]);
+        for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
+            decimals.Add(Values.packedPsqt[pc, k]);
         psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
-    }
-    public void Init()
-    {
-        // init PSQT
-        // PSQT: extract from packed
-        extract(0, ref PawnPsqt);
-        extract(1, ref KnightPsqt);
-        extract(2, ref RookPsqt);
-        extract(3, ref KingPsqt);
-    }
-    
-    public int Query(int pc, int sq)
-    {
-        sbyte[] psqt = pc switch
-        {
-            0 => PawnPsqt,
-            1 => KnightPsqt,
-            2 => RookPsqt,
-            3 => KingPsqt,
-        };
-        return psqt[sq];
     }
     
     public int Evaluate(Board board, Timer timer)
     {
-        Init();
         int ColorV(bool color)
         {
             return color ? 1 : -1;
@@ -75,15 +68,15 @@ public class Evaluator : IEvaluator
         
         // PSQT
         foreach (bool color in new[] { true, false })
-        foreach (PieceType pc in new[] { PieceType.Pawn, PieceType.Knight, PieceType.King})
-        foreach (var x in board.GetPieceList(pc, color))
+           for(k = 1; k < 7; k++) // piece type
+              foreach (var x in board.GetPieceList((PieceType)k, color))
         {
             i = x.Square.Index;
             j = color ? i : 63 - i;
             // Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)
-            psqtScore += Query((int)pc == 6 ? 3 : (int)pc >> 1, // piece type
+            psqtScore += psqts[k - 1, // piece type
                              j / 8 * 4 + Math.Min(j % 8, 7 - j % 8) // map square to psqt index
-                             )
+                             ]
                          * ColorV(color);
         }
         
