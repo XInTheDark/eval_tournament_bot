@@ -59,8 +59,8 @@ public class Evaluator : IEvaluator
         bool stm = board.IsWhiteToMove;
         // bool endgame = pieceList.Length <= 12;
         
-        // special cases for draw - insufficient material
-        if (board.IsInsufficientMaterial()) return 0;
+        // check for draw since search function's draw detection isn't complete
+        if (board.IsDraw()) return 0;
         
         int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
 
