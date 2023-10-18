@@ -88,7 +88,7 @@ public class Evaluator : IEvaluator
               foreach (var x in board.GetPieceList((PieceType)k, color))
         {
             i = x.Square.Index;
-            if (!color) i = 63 - i; // flip square if black
+            if (!color) i ^= 63; // flip square if black
             // Math.Min((int)pc, 4) >> 1, psqIndex(color ? i : 63 - i)
             psqtScore += psqts[k - 1, // piece type
                              i / 8 * 4 + Math.Min(i % 8, 7 - i % 8) // map square to psqt index
