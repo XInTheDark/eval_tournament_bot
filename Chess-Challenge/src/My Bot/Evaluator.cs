@@ -1,25 +1,6 @@
 using ChessChallenge.API;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
-public class Values
-{
-    // null, pawn, knight, bishop, rook, queen, king
-    public static int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
-    
-    // Packed Psqt
-    public static decimal[,] packedPsqt = new decimal[,]
-    {
-        // x2 quantisation
-        {4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m}, // pawn (1)
-        {3404287441579403956711512508m, 6534281595731031271123255791m, 17646465313090236126m}, // knight (2)
-        {2164014922328260742594755565m, 1859341949334155696276046588m, 17868308529803295480m}, // bishop (3)
-        {1194703523763084064389366m, 1547429716061480218496204796m, 361686527623365632m}, // rook (4)
-        {935717900348897334573004544m, 1240376670144116481419706882m, 17504344892242065654m}, // queen (5)
-        {7167995988612654671579075140m, 2500229339330604076760118057m, 51387926m}, // king (6)
-    };
-}
 
 public class Evaluator : IEvaluator
 {
