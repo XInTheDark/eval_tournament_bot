@@ -27,7 +27,6 @@ public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[6, 32]; // piece type, square
     public int i, j, k; // temp variable used to save tokens
-    public bool b1;
 
     public Evaluator() // init
     {
@@ -67,7 +66,7 @@ public class Evaluator : IEvaluator
         foreach (var list in pieceList)
         foreach (var piece in list)
         {
-            b1 = piece.IsWhite;
+            bool b1 = piece.IsWhite;
             j = (int)piece.PieceType;
             materialScore += Values.pieceValues[j] * ColorV(b1);
             
