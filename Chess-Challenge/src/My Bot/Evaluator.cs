@@ -9,7 +9,7 @@ public class Values
     public static int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
     
     // Packed Psqt
-    public static decimal[,] packedPsqt = new decimal[,]
+    public static decimal[,] packedPsqt =
     {
         // x2 quantisation
         {4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m}, // pawn (1)
