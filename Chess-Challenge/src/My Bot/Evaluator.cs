@@ -108,16 +108,13 @@ public class Evaluator : IEvaluator
                     bool is_passed = true;
                     for (j = i+8; j < 64; j += 8) // j + 8 < 64
                         if (BitboardHelper.SquareIsSet(pawnBB, new Square(j)))
-                        {
-                            is_passed = false;
-                            break;
-                        }
+                            is_passed = false; // removed break statement to save tokens
 
                     if (is_passed)
                         // this is a passed pawn!
                         // Add to mobilityScore based on rank
                         // note how i has already been flipped based on stm, in PSQT.
-                        mobilityScore += i / 8 * 6;
+                        mobilityScore += i / 8 * 6 * ColorV(color);
                 }
             }
         
