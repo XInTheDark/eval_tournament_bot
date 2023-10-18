@@ -118,8 +118,8 @@ public class Evaluator : IEvaluator
 
         int score = materialScore + mobilityScore + psqtScore;
         
-        // // Rule50
-        // score = score * (200 - board.FiftyMoveCounter) / 200;
+        // Rule50
+        score = score * (200 - board.FiftyMoveCounter) / 200;
         
         // Optimism
         if (score > 0) score = score * 11 / 10;
