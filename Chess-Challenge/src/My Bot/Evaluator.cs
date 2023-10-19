@@ -49,9 +49,7 @@ public class Evaluator : IEvaluator
     public int Evaluate(Board board, Timer timer)
     {
         int ColorV(bool color)
-        {
-            return color ? 1 : -1;
-        }
+            => color ? 1 : -1;
         
         // init variables
         bool stm = board.IsWhiteToMove;
