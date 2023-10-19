@@ -56,11 +56,11 @@ public class Evaluator : IEvaluator
         }
         
         // init variables
-        bool stm = board.IsWhiteToMove,
-            endgame = BitboardHelper.GetNumberOfSetBits(board.AllPiecesBitboard) <= 16;
+        bool stm = board.IsWhiteToMove;
+            // endgame = BitboardHelper.GetNumberOfSetBits(board.AllPiecesBitboard) <= 16;
         
-        // check for draw since search function's draw detection isn't complete
-        if (board.IsDraw()) return 0;
+        // check for insufficient material or rule50 since search function's draw detection isn't complete
+        if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) return 0;
         
         // int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
         int score = 0;
@@ -86,12 +86,14 @@ public class Evaluator : IEvaluator
                         // skip pawns and knights
                         ulong mob = BitboardHelper.GetPieceAttacks((PieceType)k, new Square(i), board, color) &
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
-                        score += Values.mobilityValues[k - 3] * BitboardHelper.GetNumberOfSetBits(mob) *
-                                         ColorV(color);
-                        // // King attacks
-                        // + board.PlyCount < 30 ? 0 :
-                        //     Values.mobilityValues[k-3] + 1 >> 1 * BitboardHelper.GetNumberOfSetBits(mob & BitboardHelper.GetKingAttacks(board.GetKingSquare(!color)))
-                        //        * ColorV(color);
+                        j = Values.mobilityValues[k - 3];
+                        score += ( j * BitboardHelper.GetNumberOfSetBits(mob)
+                        // King attacks
+                        + j + 1 >> 1 
+                             * BitboardHelper.GetNumberOfSetBits(
+                        mob & BitboardHelper.GetKingAttacks(board.GetKingSquare(!color)))
+                        )
+                              * ColorV(color);
                     }
 
                     /* PSQT */
@@ -104,7 +106,7 @@ public class Evaluator : IEvaluator
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
-                    if (k != 1 || !endgame) continue; // non-pawn or not in endgame
+                    if (k != 1) continue; // non-pawn
                     // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
                     bool is_passed = true;
                     for (j = i+8; j < 64; j += 8) // j + 8 < 64
