@@ -57,9 +57,6 @@ public class Evaluator : IEvaluator
         bool stm = board.IsWhiteToMove;
             // endgame = BitboardHelper.GetNumberOfSetBits(board.AllPiecesBitboard) <= 16;
         
-        // check for insufficient material or rule50 since search function's draw detection isn't complete
-        if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) return 0;
-        
         // int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
         int score = 0;
 
