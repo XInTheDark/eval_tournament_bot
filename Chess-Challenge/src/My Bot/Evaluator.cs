@@ -56,13 +56,14 @@ public class Evaluator : IEvaluator
         }
         
         // init variables
-        bool stm = board.IsWhiteToMove;
-        // bool endgame = pieceList.Length <= 12;
+        bool stm = board.IsWhiteToMove,
+            endgame = BitboardHelper.GetNumberOfSetBits(board.AllPiecesBitboard) <= 16;
         
         // check for draw since search function's draw detection isn't complete
         if (board.IsDraw()) return 0;
         
-        int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
+        // int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
+        int score = 0;
 
         // Material, PSQT & mobility
         foreach (bool color in new[] { true, false })
@@ -74,7 +75,7 @@ public class Evaluator : IEvaluator
                 while (bitboard != 0) // iterate over every piece of that type
                 {
                     /* Material */
-                    materialScore += Values.pieceValues[k] * ColorV(color);
+                    score += Values.pieceValues[k] * ColorV(color);
                     
                     i = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard); // square
                     
@@ -85,7 +86,7 @@ public class Evaluator : IEvaluator
                         // skip pawns and knights
                         ulong mob = BitboardHelper.GetPieceAttacks((PieceType)k, new Square(i), board, color) &
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
-                        mobilityScore += Values.mobilityValues[k - 3] * BitboardHelper.GetNumberOfSetBits(mob) *
+                        score += Values.mobilityValues[k - 3] * BitboardHelper.GetNumberOfSetBits(mob) *
                                          ColorV(color);
                         // // King attacks
                         // + board.PlyCount < 30 ? 0 :
@@ -95,7 +96,7 @@ public class Evaluator : IEvaluator
 
                     /* PSQT */
                     if (!color) i ^= 56; // flip square if black
-                    psqtScore += psqts[k - 1, // piece type
+                    score += psqts[k - 1, // piece type
                                      i / 8 * 4 + Math.Min(i % 8, 7 - i % 8) // map square to psqt index
                                  ]
                                  * ColorV(color);
@@ -103,7 +104,7 @@ public class Evaluator : IEvaluator
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
-                    if (k != 1) continue; // non-pawn
+                    if (k != 1 || !endgame) continue; // non-pawn or not in endgame
                     // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
                     bool is_passed = true;
                     for (j = i+8; j < 64; j += 8) // j + 8 < 64
@@ -112,19 +113,17 @@ public class Evaluator : IEvaluator
 
                     if (is_passed)
                         // this is a passed pawn!
-                        // Add to mobilityScore based on rank
                         // note how i has already been flipped based on stm, in PSQT.
-                        mobilityScore += i / 8 * 6 * ColorV(color);
+                        // value passed pawns less if we have a rook.
+                        score += i / 8 * (6 >> (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 1 : 0)) *
+                                         ColorV(color);
                 }
             }
         
-        int score = materialScore + mobilityScore + psqtScore;
+        // int score = materialScore + mobilityScore + psqtScore;
         
-        // Rule50
-        score = score * (200 - board.FiftyMoveCounter) / 200;
-        
-        // Optimism
-        if (score > 0) score = score * 11 / 10;
+        // // Optimism
+        // if (score > 0) score = score * 11 / 10;
         
         return stm ? score : -score;
     }
