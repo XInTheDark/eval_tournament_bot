@@ -3,15 +3,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Values
+public class Evaluator : IEvaluator
 {
+    public static int[,] psqts = new int[6, 32]; // piece type, square
+    public int i, j, k; // temp variable used to save tokens
+    
+    /* VALUES */
     // null, pawn, knight, bishop, rook, queen, king
-    public static int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
+    public static readonly int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
     // bishop, rook, queen
-    public static int[] mobilityValues  = { 6, 5, 3, 0 };
+    public static readonly int[] mobilityValues  = { 6, 5, 3, 0 };
     
     // Packed Psqt
-    public static decimal[,] packedPsqt =
+    public static readonly decimal[,] packedPsqt =
     {
         // x2 quantisation
         {4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m}, // pawn (1)
@@ -21,13 +25,7 @@ public class Values
         {935717900348897334573004544m, 1240376670144116481419706882m, 17504344892242065654m}, // queen (5)
         {7167995988612654671579075140m, 2500229339330604076760118057m, 51387926m}, // king (6)
     };
-}
-
-public class Evaluator : IEvaluator
-{
-    public static int[,] psqts = new int[6, 32]; // piece type, square
-    public int i, j, k; // temp variable used to save tokens
-
+    
     public Evaluator() // init
     {
         // init psqts - extract from packed
@@ -44,7 +42,7 @@ public class Evaluator : IEvaluator
     {
         var decimals = new List<decimal>();
         for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
-            decimals.Add(Values.packedPsqt[pc, k]);
+            decimals.Add(packedPsqt[pc, k]);
         psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
     }
     
@@ -75,7 +73,7 @@ public class Evaluator : IEvaluator
                 while (bitboard != 0) // iterate over every piece of that type
                 {
                     /* Material */
-                    score += Values.pieceValues[k] * ColorV(color);
+                    score += pieceValues[k] * ColorV(color);
                     
                     i = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard); // square
                     
@@ -86,7 +84,7 @@ public class Evaluator : IEvaluator
                         // skip pawns and knights
                         ulong mob = BitboardHelper.GetPieceAttacks((PieceType)k, new Square(i), board, color) &
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
-                        j = Values.mobilityValues[k - 3];
+                        j = mobilityValues[k - 3];
                         score += ( j * BitboardHelper.GetNumberOfSetBits(mob)
                         // King attacks
                         + j + 1 >> 1 
