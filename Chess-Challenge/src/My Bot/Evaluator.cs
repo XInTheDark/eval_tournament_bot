@@ -125,6 +125,8 @@ public class Evaluator : IEvaluator
         // // Optimism
         // if (score > 0) score = score * 11 / 10;
         
+        /* Tempo */
+        score += 15 * ColorV(stm);
         return stm ? score : -score;
     }
 }
