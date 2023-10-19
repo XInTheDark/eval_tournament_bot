@@ -31,7 +31,7 @@ public class Evaluator : IEvaluator
     public Evaluator() // init
     {
         // init psqts - extract from packed
-        for (i = 0; i < 6; i++)
+        for (; i < 6; i++) // i=0 since this is the constructor
         {
             var psqt = new sbyte[32];
             extract(i, out psqt);
