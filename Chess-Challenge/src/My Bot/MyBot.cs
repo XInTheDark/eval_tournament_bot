@@ -32,10 +32,10 @@ public class MyBot : IChessBot
         ulong key = board.ZobristKey;
         bool qsearch = depth <= 0;
         bool notRoot = ply > 0;
-        int best = -30000;
+        int best = -30002;
 
         // Check for repetition (this is much more important than material and 50 move rule draws)
-        if(notRoot && board.IsRepeatedPosition())
+        if(board.IsDraw())
             return 0;
 
         TTEntry entry = tt[key % entries];
@@ -74,7 +74,6 @@ public class MyBot : IChessBot
 
         // Search moves
         for(int i = 0; i < moves.Length; i++) {
-            if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) return 30000;
 
             // Incrementally sort moves
             for(int j = i + 1; j < moves.Length; j++) {
@@ -86,6 +85,8 @@ public class MyBot : IChessBot
             board.MakeMove(move);
             int score = -Search(board, timer, -beta, -alpha, depth - 1, ply + 1);
             board.UndoMove(move);
+            
+            if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) return 30001;
 
             // New best move
             if(score > best) {
@@ -103,7 +104,7 @@ public class MyBot : IChessBot
         }
 
         // (Check/Stale)mate
-        if(!qsearch && moves.Length == 0) return board.IsInCheck() ? -30000 + ply : 0;
+        if (board.IsInCheckmate()) return -30000 + ply;
 
         // Did we fail high/low or get an exact score?
         int bound = best >= beta ? 2 : best > origAlpha ? 3 : 1;
@@ -126,6 +127,11 @@ public class MyBot : IChessBot
             if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
                 break;
             score = iterationScore;
+        }
+
+        if (Math.Abs(score) > 30_000)
+        {
+            Console.Error.WriteLine("WARNING: SCORE OUTSIDE OF BOUNDS: {0}", score);
         }
         return (bestmoveRoot.IsNull ? board.GetLegalMoves()[0] : bestmoveRoot, score);
     }
