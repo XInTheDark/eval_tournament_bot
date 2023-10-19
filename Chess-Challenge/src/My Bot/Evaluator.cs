@@ -115,7 +115,7 @@ public class Evaluator : IEvaluator
                         // this is a passed pawn!
                         // note how i has already been flipped based on stm, in PSQT.
                         // value passed pawns less if we have a rook.
-                        score += i / 8 * (6 >> (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 1 : 0)) *
+                        score += i / 8 * (8 >> (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 1 : 0)) *
                                          ColorV(color);
                 }
             }
