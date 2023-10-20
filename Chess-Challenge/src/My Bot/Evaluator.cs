@@ -7,7 +7,7 @@ using System.Linq;
 public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[6, 32]; // piece type, square
-    public int i, j, k, scoreAccum; // temp variable used to save tokens
+    public int i, j, k, scoreAccum, rank, file; // temp variable used to save tokens
     
     /* VALUES */
     // null, pawn, knight, bishop, rook, queen, king
@@ -56,20 +56,22 @@ public class Evaluator : IEvaluator
 
         // Material, PSQT & mobility
         foreach (bool color in new[] { true, false })
+        {
+            ulong pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
+            
             for (k = 1; k < 7; k++) // piece type
             {
-                ulong bitboard = board.GetPieceBitboard((PieceType)k, color), 
-                    pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
-                
+                ulong bitboard = board.GetPieceBitboard((PieceType)k, color);
+
                 while (bitboard != 0) // iterate over every piece of that type
                 {
                     scoreAccum = 0;
-                    
+
                     /* Material */
                     scoreAccum += pieceValues[k];
-                    
+
                     i = ClearAndGetIndexOfLSB(ref bitboard); // square
-                    
+
                     /* Mobility */
                     // The more squares you are able to attack, the more flexible your position is.
                     if (k > 2)
@@ -79,22 +81,23 @@ public class Evaluator : IEvaluator
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
                         j = mobilityValues[k - 3];
                         scoreAccum += j * GetNumberOfSetBits(mob)
-                                // King attacks
-                                + j + 1 >> 1
-                                * GetNumberOfSetBits(
-                                    mob & GetKingAttacks(board.GetKingSquare(!color)));
+                            // King attacks
+                            + j + 1 >> 1
+                            * GetNumberOfSetBits(
+                                mob & GetKingAttacks(board.GetKingSquare(!color)));
                     }
 
                     /* PSQT */
                     if (!color) i ^= 56; // flip square if black
+                    rank = i >> 3; file = i & 7;
                     scoreAccum += psqts[k - 1, // piece type
-                                     i / 8 * 4 + Math.Min(i & 7, 7 - i & 7) // map square to psqt index
-                                 ];
-                    
+                        rank * 4 + Math.Min(file, 7 - file) // map square to psqt index
+                    ];
+
                     /* endgame: incentivize king moving towards center */
                     if (endgame && k == 6)
-                        scoreAccum -= 20 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i & 7));
-                    
+                        scoreAccum -= 20 * (Math.Abs(4 - rank) + Math.Abs(4 - file));
+
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
@@ -110,16 +113,20 @@ public class Evaluator : IEvaluator
                             // this is a passed pawn!
                             // note how i has already been flipped based on stm, in PSQT.
                             // value passed pawns less if we have a rook.
-                            scoreAccum += i / 8 * (endgame ? 16 : 8);
+                            scoreAccum += rank * (endgame ? 16 : 8);
                     }
 
                     score += scoreAccum * ColorV(color);
                 }
             }
+        }
+
+        /* STM */
+        score *= ColorV(stm);
         
         /* Tempo */
-        score += 15 * ColorV(stm);
+        score += 15;
 
-        return score * ColorV(stm);
+        return score;
     }
 }
