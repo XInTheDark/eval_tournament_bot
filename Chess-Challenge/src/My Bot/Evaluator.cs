@@ -96,7 +96,7 @@ public class Evaluator : IEvaluator
                     /* Centrality */
                     scoreAccum += (k == 6 ? 
                                     num_pieces <= 12 ? -20 : 0 // centralise king in endgame
-                                   : 2 * k - 12)
+                                   : Max(k - 6, -4))
                         * (Abs(4 - rank) + Abs(4 - file));
 
                     /* Passed Pawn */
