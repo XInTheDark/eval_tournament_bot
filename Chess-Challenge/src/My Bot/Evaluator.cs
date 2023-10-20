@@ -6,7 +6,7 @@ using System.Linq;
 public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[6, 32]; // piece type, square
-    public int i, j, k; // temp variable used to save tokens
+    public int i, j, k, colorV; // temp variable used to save tokens
     
     /* VALUES */
     // null, pawn, knight, bishop, rook, queen, king
@@ -67,8 +67,10 @@ public class Evaluator : IEvaluator
                 
                 while (bitboard != 0) // iterate over every piece of that type
                 {
+                    colorV = ColorV(color);
+                    
                     /* Material */
-                    score += pieceValues[k] * ColorV(color);
+                    score += pieceValues[k] * colorV;
                     
                     i = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard); // square
                     
@@ -86,7 +88,7 @@ public class Evaluator : IEvaluator
                              * BitboardHelper.GetNumberOfSetBits(
                         mob & BitboardHelper.GetKingAttacks(board.GetKingSquare(!color)))
                         )
-                              * ColorV(color);
+                              * colorV;
                     }
 
                     /* PSQT */
@@ -94,7 +96,7 @@ public class Evaluator : IEvaluator
                     score += psqts[k - 1, // piece type
                                      i / 8 * 4 + Math.Min(i % 8, 7 - i % 8) // map square to psqt index
                                  ]
-                                 * ColorV(color);
+                                 * colorV;
                     
                     /* Passed Pawn */
                     // basic detection
@@ -111,17 +113,13 @@ public class Evaluator : IEvaluator
                         // note how i has already been flipped based on stm, in PSQT.
                         // value passed pawns less if we have a rook.
                         score += i / 8 * (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 4 : 8) *
-                                         ColorV(color);
+                                 colorV;
                 }
             }
         
-        // int score = materialScore + mobilityScore + psqtScore;
-        
-        // // Optimism
-        // if (score > 0) score = score * 11 / 10;
-        
         /* Tempo */
         score += 15 * ColorV(stm);
-        return stm ? score : -score;
+
+        return score * ColorV(stm);
     }
 }
