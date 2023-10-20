@@ -88,12 +88,12 @@ public class Evaluator : IEvaluator
                     /* PSQT */
                     if (!color) i ^= 56; // flip square if black
                     scoreAccum += psqts[k - 1, // piece type
-                                     i / 8 * 4 + Math.Min(i % 8, 7 - i % 8) // map square to psqt index
+                                     i / 8 * 4 + Math.Min(i & 7, 7 - i & 7) // map square to psqt index
                                  ];
                     
                     /* endgame: incentivize king moving towards center */
                     if (endgame && k == 6)
-                        scoreAccum -= 10 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i % 8));
+                        scoreAccum -= 10 * (Math.Abs(4 - i & 7) + Math.Abs(4 - i & 7));
                     
                     /* Passed Pawn */
                     // basic detection
