@@ -93,7 +93,7 @@ public class Evaluator : IEvaluator
                     
                     /* endgame: incentivize king moving towards center */
                     if (endgame && k == 6)
-                        scoreAccum -= 10 * (Math.Abs(4 - i & 7) + Math.Abs(4 - i & 7));
+                        scoreAccum -= 10 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i & 7));
                     
                     /* Passed Pawn */
                     // basic detection
