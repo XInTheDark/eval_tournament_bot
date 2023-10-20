@@ -7,7 +7,7 @@ using System.Linq;
 public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[6, 32]; // piece type, square
-    public int i, j, k, colorV; // temp variable used to save tokens
+    public int i, j, k, scoreAccum; // temp variable used to save tokens
     
     /* VALUES */
     // null, pawn, knight, bishop, rook, queen, king
@@ -32,19 +32,16 @@ public class Evaluator : IEvaluator
         // init psqts - extract from packed
         for (; i < 6; i++) // i=0 since this is the constructor
         {
-            var psqt = new sbyte[32];
-            extract(i, out psqt);
+            /* extract */
+            var decimals = new List<decimal>();
+            for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
+                decimals.Add(packedPsqt[i, k]);
+            var psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => 
+                BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
+            
             for (j = 0; j < 32; j++)
                 psqts[i, j] = psqt[j] * 2; // 2x quantisation
         }
-    }
-
-    public void extract(int pc, out sbyte[] psqt)
-    {
-        var decimals = new List<decimal>();
-        for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
-            decimals.Add(packedPsqt[pc, k]);
-        psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
     }
     
     public int Evaluate(Board board, Timer timer)
@@ -53,10 +50,8 @@ public class Evaluator : IEvaluator
             => color ? 1 : -1;
         
         // init variables
-        bool stm = board.IsWhiteToMove;
-            // endgame = BitboardHelper.GetNumberOfSetBits(board.AllPiecesBitboard) <= 16;
+        bool stm = board.IsWhiteToMove, endgame = GetNumberOfSetBits(board.AllPiecesBitboard) <= 14;
         
-        // int materialScore = 0, mobilityScore = 0, psqtScore = 0; 
         int score = 0;
 
         // Material, PSQT & mobility
@@ -68,10 +63,10 @@ public class Evaluator : IEvaluator
                 
                 while (bitboard != 0) // iterate over every piece of that type
                 {
-                    colorV = ColorV(color);
+                    scoreAccum = 0;
                     
                     /* Material */
-                    score += pieceValues[k] * colorV;
+                    scoreAccum += pieceValues[k];
                     
                     i = ClearAndGetIndexOfLSB(ref bitboard); // square
                     
@@ -83,38 +78,42 @@ public class Evaluator : IEvaluator
                         ulong mob = GetPieceAttacks((PieceType)k, new Square(i), board, color) &
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
                         j = mobilityValues[k - 3];
-                        score += ( j * GetNumberOfSetBits(mob)
-                        // King attacks
-                        + j + 1 >> 1 
-                             * GetNumberOfSetBits(
-                        mob & GetKingAttacks(board.GetKingSquare(!color)))
-                        )
-                              * colorV;
+                        scoreAccum += j * GetNumberOfSetBits(mob)
+                                // King attacks
+                                + j + 1 >> 1
+                                * GetNumberOfSetBits(
+                                    mob & GetKingAttacks(board.GetKingSquare(!color)));
                     }
 
                     /* PSQT */
                     if (!color) i ^= 56; // flip square if black
-                    score += psqts[k - 1, // piece type
+                    scoreAccum += psqts[k - 1, // piece type
                                      i / 8 * 4 + Math.Min(i % 8, 7 - i % 8) // map square to psqt index
-                                 ]
-                                 * colorV;
+                                 ];
+                    
+                    /* endgame: incentivize king moving towards center */
+                    if (endgame && k == 6)
+                        scoreAccum -= 10 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i % 8));
                     
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
-                    if (k != 1) continue; // non-pawn
-                    // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
-                    bool is_passed = true;
-                    for (j = i+8; j < 64; j += 8) // j + 8 < 64
-                        if (SquareIsSet(pawnBB, new Square(j)))
-                            is_passed = false; // removed break statement to save tokens
+                    if (k == 1)
+                    {
+                        // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
+                        bool is_passed = true;
+                        for (j = i + 8; j < 64; j += 8) // j + 8 < 64
+                            if (SquareIsSet(pawnBB, new Square(j)))
+                                is_passed = false; // removed break statement to save tokens
 
-                    if (is_passed)
-                        // this is a passed pawn!
-                        // note how i has already been flipped based on stm, in PSQT.
-                        // value passed pawns less if we have a rook.
-                        score += i / 8 * (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 4 : 8) *
-                                 colorV;
+                        if (is_passed)
+                            // this is a passed pawn!
+                            // note how i has already been flipped based on stm, in PSQT.
+                            // value passed pawns less if we have a rook.
+                            scoreAccum += i / 8 * (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 4 : 8);
+                    }
+
+                    score += scoreAccum * ColorV(color);
                 }
             }
         
