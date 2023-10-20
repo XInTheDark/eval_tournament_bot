@@ -93,7 +93,7 @@ public class Evaluator : IEvaluator
                     
                     /* endgame: incentivize king moving towards center */
                     if (endgame && k == 6)
-                        scoreAccum -= 10 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i & 7));
+                        scoreAccum -= 20 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i & 7));
                     
                     /* Passed Pawn */
                     // basic detection
@@ -110,7 +110,7 @@ public class Evaluator : IEvaluator
                             // this is a passed pawn!
                             // note how i has already been flipped based on stm, in PSQT.
                             // value passed pawns less if we have a rook.
-                            scoreAccum += i / 8 * (board.GetPieceBitboard(PieceType.Rook, color) > 0 ? 4 : 8);
+                            scoreAccum += i / 8 * (endgame ? 16 : 8);
                     }
 
                     score += scoreAccum * ColorV(color);
