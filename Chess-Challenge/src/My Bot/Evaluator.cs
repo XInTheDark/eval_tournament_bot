@@ -1,13 +1,14 @@
 using ChessChallenge.API;
 using static ChessChallenge.API.BitboardHelper;
 using System;
+using static System.Math;
 using System.Collections.Generic;
 using System.Linq;
 
 public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[6, 32]; // piece type, square
-    public int i, j, k, scoreAccum; // temp variable used to save tokens
+    public int i, j, k, scoreAccum, rank, file; // temp variable used to save tokens
     
     /* VALUES */
     // null, pawn, knight, bishop, rook, queen, king
@@ -50,26 +51,26 @@ public class Evaluator : IEvaluator
             => color ? 1 : -1;
         
         // init variables
-        bool stm = board.IsWhiteToMove, endgame = GetNumberOfSetBits(board.AllPiecesBitboard) <= 14;
+        bool stm = board.IsWhiteToMove;
+        int num_pieces = GetNumberOfSetBits(board.AllPiecesBitboard);
         
         int score = 0;
 
         // Material, PSQT & mobility
         foreach (bool color in new[] { true, false })
+        {
+            ulong pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
             for (k = 1; k < 7; k++) // piece type
             {
-                ulong bitboard = board.GetPieceBitboard((PieceType)k, color), 
-                    pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
-                
+                ulong bitboard = board.GetPieceBitboard((PieceType)k, color);
+
                 while (bitboard != 0) // iterate over every piece of that type
                 {
-                    scoreAccum = 0;
-                    
-                    /* Material */
-                    scoreAccum += pieceValues[k];
-                    
                     i = ClearAndGetIndexOfLSB(ref bitboard); // square
                     
+                    /* Material */
+                    scoreAccum = pieceValues[k];
+
                     /* Mobility */
                     // The more squares you are able to attack, the more flexible your position is.
                     if (k > 2)
@@ -79,22 +80,25 @@ public class Evaluator : IEvaluator
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
                         j = mobilityValues[k - 3];
                         scoreAccum += j * GetNumberOfSetBits(mob)
-                                // King attacks
-                                + j + 1 >> 1
-                                * GetNumberOfSetBits(
-                                    mob & GetKingAttacks(board.GetKingSquare(!color)));
+                            // King attacks
+                            + j + 1 >> 1
+                            * GetNumberOfSetBits(
+                                mob & GetKingAttacks(board.GetKingSquare(!color)));
                     }
 
                     /* PSQT */
                     if (!color) i ^= 56; // flip square if black
+                    rank = i >> 3; file = i & 7;
                     scoreAccum += psqts[k - 1, // piece type
-                                     i / 8 * 4 + Math.Min(i & 7, 7 - i & 7) // map square to psqt index
-                                 ];
+                        rank * 4 + Min(file, 7 - file) // map square to psqt index
+                    ];
                     
-                    /* endgame: incentivize king moving towards center */
-                    if (endgame && k == 6)
-                        scoreAccum -= 20 * (Math.Abs(4 - i / 8) + Math.Abs(4 - i & 7));
-                    
+                    /* Centrality */
+                    scoreAccum += (k == 6 ? 
+                                    num_pieces <= 12 ? -20 : 0 // centralise king in endgame
+                                   : k - 6)
+                        * (Abs(7 - rank - file) + Abs(rank - file));
+
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
@@ -109,17 +113,21 @@ public class Evaluator : IEvaluator
                         if (is_passed)
                             // this is a passed pawn!
                             // note how i has already been flipped based on stm, in PSQT.
-                            // value passed pawns less if we have a rook.
-                            scoreAccum += i / 8 * (endgame ? 16 : 8);
+                            scoreAccum += i / 8 * (num_pieces <= 14 ? 16 : 8); 
+                            // rank must be recomputed since i is flipped
                     }
 
                     score += scoreAccum * ColorV(color);
                 }
             }
-        
-        /* Tempo */
-        score += 15 * ColorV(stm);
+        }
 
-        return score * ColorV(stm);
+        /* Convert to stm */
+        score *= ColorV(stm);
+        
+        /* Tempo: bonus for stm */
+        score += 15;
+
+        return score;
     }
 }
