@@ -76,7 +76,7 @@ public class Evaluator : IEvaluator
 
                     /* Mobility */
                     // The more squares you are able to attack, the more flexible your position is.
-                    if (k > 2 && timer.MillisecondsRemaining > 3000)
+                    if (k > 2)
                     {
                         // skip pawns and knights
                         ulong mob = GetPieceAttacks((PieceType)k, new Square(i), board, color) &
