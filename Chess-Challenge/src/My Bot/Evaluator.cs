@@ -1,6 +1,7 @@
 using ChessChallenge.API;
 using static ChessChallenge.API.BitboardHelper;
 using System;
+using static System.Math;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -83,7 +84,7 @@ public class Evaluator : IEvaluator
                         j = mobilityValues[k - 3];
                         scoreAccum += j * GetNumberOfSetBits(mob)
                             // King attacks
-                            + j + pieceCount >> 1  // the more pieces, the more we value king safety
+                            + j + 1 >> 1
                             * GetNumberOfSetBits(
                                 mob & GetKingAttacks(board.GetKingSquare(!color)));
                     }
@@ -97,12 +98,12 @@ public class Evaluator : IEvaluator
                     if (!color) i ^= 56; // flip square if black
                     rank = i >> 3; file = i & 7;
                     scoreAccum += psqts[k - 1, // piece type
-                        rank * 4 + Math.Min(file, 7 - file) // map square to psqt index
+                        rank * 4 + Min(file, 7 - file) // map square to psqt index
                     ];
 
                     /* late endgame: incentivize king moving towards center */
-                    if (pieceCount <= 12 && k == 6)
-                        scoreAccum -= 20 * (Math.Abs(4 - rank) + Math.Abs(4 - file));
+                    if (pieceCount <= 14 && k == 6)
+                        scoreAccum -= 20 * (Abs(4 - rank) + Abs(4 - file));
 
                     /* Passed Pawn */
                     // basic detection
@@ -119,7 +120,7 @@ public class Evaluator : IEvaluator
                             // this is a passed pawn!
                             // note how i has already been flipped based on stm, in PSQT.
                             // scale based on rank and piece count.
-                            scoreAccum += rank << 8 / pieceCount;  // rank * (256 / pieceCount)
+                            scoreAccum += rank << 8 / Max(pieceCount, 14);  // rank * (256 / pieceCount)
                     }
 
                     score += scoreAccum * ColorV(color);
@@ -131,7 +132,9 @@ public class Evaluator : IEvaluator
         score *= ColorV(stm);
         
         /* Tempo */
-        score += 15;
+        // Give bonus to stm.
+        // However if in check give a small penalty.
+        score += board.IsInCheck() ? -5 : 15;
 
         return score;
     }
