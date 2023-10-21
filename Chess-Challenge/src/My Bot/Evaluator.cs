@@ -12,7 +12,7 @@ public class Evaluator : IEvaluator
     
     /* VALUES */
     // null, pawn, knight, bishop, rook, queen, king
-    public static readonly int[] pieceValues = { 0, 126, 781, 781, 1276, 2538, 40000 };
+    public static readonly int[] pieceValues = { 0, 150, 801, 852, 1307, 2581, 40000 };
     // bishop, rook, queen
     public static readonly int[] mobilityValues  = { 6, 5, 3, 0 };
     
