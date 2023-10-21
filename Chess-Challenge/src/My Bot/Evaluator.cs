@@ -14,7 +14,7 @@ public class Evaluator : IEvaluator
     // null, pawn, knight, bishop, rook, queen, king
     public static readonly int[] pieceValues = { 0, 150, 801, 852, 1307, 2581, 40000 };
     // bishop, rook, queen, king
-    public static readonly int[] mobilityValues  = { 6, 5, 3, -3 };
+    public static readonly int[] mobilityValues  = { 6, 5, 3, 0 };
     
     // Packed Psqt
     public static readonly decimal[,] packedPsqt =
@@ -83,7 +83,7 @@ public class Evaluator : IEvaluator
                         j = mobilityValues[k - 3];
                         scoreAccum += j * GetNumberOfSetBits(mob)
                             // King attacks
-                            + Abs(j) + 1 >> 1
+                            + j + 1 >> 1
                             * GetNumberOfSetBits(
                                 mob & GetKingAttacks(board.GetKingSquare(!color)));
                     }
