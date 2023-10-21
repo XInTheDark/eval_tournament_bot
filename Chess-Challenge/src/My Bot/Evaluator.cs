@@ -103,7 +103,7 @@ public class Evaluator : IEvaluator
 
                     /* late endgame: incentivize king moving towards center */
                     if (pieceCount <= 14 && k == 6)
-                        scoreAccum -= 20 * (Abs(4 - rank) + Abs(4 - file));
+                        scoreAccum -= (32 - pieceCount) * (Abs(4 - rank) + Abs(4 - file));
 
                     /* Passed Pawn */
                     // basic detection
@@ -120,7 +120,7 @@ public class Evaluator : IEvaluator
                             // this is a passed pawn!
                             // note how i has already been flipped based on stm, in PSQT.
                             // scale based on rank and piece count.
-                            scoreAccum += rank << 8 / Max(pieceCount, 14);  // rank * (256 / pieceCount)
+                            scoreAccum += rank * 224 / pieceCount;
                     }
 
                     score += scoreAccum * ColorV(color);
