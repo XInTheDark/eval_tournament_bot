@@ -60,8 +60,7 @@ public class Evaluator : IEvaluator
         foreach (bool color in new[] { true, false })
         {
             ulong pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
-            
-            for (k = 1; k < 7; k++) // piece type
+            k = 0; while (k++ < 6) // piece type, k -> 1 to 6
             {
                 ulong bitboard = board.GetPieceBitboard((PieceType)k, color);
 
@@ -76,7 +75,7 @@ public class Evaluator : IEvaluator
 
                     /* Mobility */
                     // The more squares you are able to attack, the more flexible your position is.
-                    if (k > 2)
+                    if (k > 2 && pieceCount > 16) // skip this in endgame
                     {
                         // skip pawns and knights
                         ulong mob = GetPieceAttacks((PieceType)k, new Square(i), board, color) &
@@ -108,7 +107,7 @@ public class Evaluator : IEvaluator
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
-                    if (k == 1)
+                    if (k == 1 && pieceCount <= 20)
                     {
                         // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
                         bool is_passed = true;
@@ -132,9 +131,8 @@ public class Evaluator : IEvaluator
         score *= ColorV(stm);
         
         /* Tempo */
-        // Give bonus to stm.
-        // However if in check give a small penalty.
-        score += board.IsInCheck() ? -5 : 15;
+        // Give bonus to stm if not in check.
+        score += board.IsInCheck() ? 0 : 15;
 
         return score;
     }
