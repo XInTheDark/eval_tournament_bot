@@ -11,21 +11,23 @@ public class Evaluator : IEvaluator
     public int i, j, k, scoreAccum, rank, file; // temp variable used to save tokens
     
     /* VALUES */
-    // null, pawn, knight, bishop, rook, queen, king
-    public static readonly int[] pieceValues = { 0, 150, 801, 852, 1307, 2581, 40000 };
-    // bishop, rook, queen, king
-    public static readonly int[] mobilityValues  = { 6, 5, 3, 0 };
+    public static readonly int[] evalValues  =
+    {
+        6, 5, 3, 0, // mobility
+        18, 1, 2, 26, 8, -13, // open file
+        150, 801, 852, 1307, 2581, 40000 // material
+    };
     
     // Packed Psqt
-    public static readonly decimal[,] packedPsqt =
+    public static readonly decimal[] packedPsqt =
     {
         // x2 quantisation
-        {4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m}, // pawn (1)
-        {2478254930630260639978739380m, 6520955114482203651610772206m, 17646465265845333982m}, // knight (2)
-        {1854520467773665165346274285m, 929677993905542949369152252m, 17940367219057883896m}, // bishop (3)
-        {309465972997065300676048884m, 1549842771690800342854663930m, 361125785249514752m}, // rook (4)
-        {933290603903513349640943094m, 928464345431493250755396094m, 18085039881020571383m}, // queen (5)
-        {21147051397208103401407871327m, 12137975184157770585622600265m, 799995959288806438m}, // king (6)
+        4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m, // pawn (1)
+        2478254930630260639978739380m, 6520955114482203651610772206m, 17646465265845333982m, // knight (2)
+        1854520467773665165346274285m, 929677993905542949369152252m, 17940367219057883896m, // bishop (3)
+        309465972997065300676048884m, 1549842771690800342854663930m, 361125785249514752m, // rook (4)
+        933290603903513349640943094m, 928464345431493250755396094m, 18085039881020571383m, // queen (5)
+        21147051397208103401407871327m, 12137975184157770585622600265m, 799995959288806438m, // king (6)
     };
     
     public Evaluator() // init
@@ -35,8 +37,8 @@ public class Evaluator : IEvaluator
         {
             /* extract */
             var decimals = new List<decimal>();
-            for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
-                decimals.Add(packedPsqt[i, k]);
+            for (k = 0; k < 3; k++)
+                decimals.Add(packedPsqt[i * 3 + k]);
             var psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => 
                 BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
             
@@ -47,9 +49,6 @@ public class Evaluator : IEvaluator
     
     public int Evaluate(Board board, Timer timer)
     {
-        int ColorV(bool color)
-            => color ? 1 : -1;
-
         // init variables
         bool stm = board.IsWhiteToMove;
 
@@ -60,16 +59,15 @@ public class Evaluator : IEvaluator
         foreach (bool color in new[] { true, false })
         {
             ulong pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
-            k = 0; while (k++ < 6) // piece type, k -> 1 to 6
+            
+            scoreAccum = k = 0; while (k++ < 6) // piece type, k -> 1 to 6
             {
                 ulong bitboard = board.GetPieceBitboard((PieceType)k, color);
 
                 while (bitboard != 0) // iterate over every piece of that type
                 {
-                    scoreAccum = 0;
-
                     /* Material */
-                    scoreAccum += pieceValues[k];
+                    scoreAccum += evalValues[k + 9];
 
                     i = ClearAndGetIndexOfLSB(ref bitboard); // square
 
@@ -80,7 +78,7 @@ public class Evaluator : IEvaluator
                         // skip pawns and knights
                         ulong mob = GetPieceAttacks((PieceType)k, new Square(i), board, color) &
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
-                        j = mobilityValues[k - 3];
+                        j = evalValues[k - 3];
                         scoreAccum += j * GetNumberOfSetBits(mob);
                     }
 
@@ -94,7 +92,12 @@ public class Evaluator : IEvaluator
                     /* late endgame: incentivize king moving towards center */
                     if (pieceCount <= 14 && k == 6)
                         scoreAccum -= (26 - pieceCount) * (Abs(4 - rank) + Abs(4 - file));
-
+                    
+                    /* Open files, doubled pawns */
+                    if ((0x101010101010101UL << i % 8 & ~(1UL << i) &
+                         board.GetPieceBitboard(PieceType.Pawn, color)) == 0)
+                        scoreAccum += evalValues[3 + k];
+                    
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
@@ -112,14 +115,14 @@ public class Evaluator : IEvaluator
                             // scale based on rank and piece count.
                             scoreAccum += rank * 224 / pieceCount;
                     }
-
-                    score += scoreAccum * ColorV(color);
-                }
-            }
-        }
+                } // piece bitboard loop
+            } // piece type loop
+            
+            score += scoreAccum * (color ? 1 : -1);
+        } // color loop
 
         /* STM */
-        score *= ColorV(stm);
+        score *= stm ? 1 : -1;
         
         /* Tempo */
         // Give bonus to stm if not in check.
