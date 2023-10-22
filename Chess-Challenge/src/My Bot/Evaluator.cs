@@ -21,28 +21,71 @@ public class Evaluator : IEvaluator
     {
         // x2 quantisation
         {4034157052646293636858773504m, 2789001439998792313019365633m, 4277994750m}, // pawn (1)
-        {3404287441579403956711512508m, 6534281595731031271123255791m, 17646465313090236126m}, // knight (2)
-        {2164014922328260742594755565m, 1859341949334155696276046588m, 17868308529803295480m}, // bishop (3)
-        {1194703523763084064389366m, 1547429716061480218496204796m, 361686527623365632m}, // rook (4)
+        {1861712170249826389781631676m, 8081725700542254098221892847m, 17574408711223571423m}, // knight (2)
+        {2164014959222311857113923310m, 1237954114945724452207920382m, 17940934567057882106m}, // bishop (3)
+        {310674825101479749795575537m, 1861745559436171182698594042m, 288503020827182847m}, // rook (4)
         {935717900348897334573004544m, 1240376670144116481419706882m, 17504344892242065654m}, // queen (5)
         {7167995988612654671579075140m, 2500229339330604076760118057m, 51387926m}, // king (6)
     };
     
     public Evaluator() // init
     {
-        // init psqts - extract from packed
-        for (; i < 6; i++) // i=0 since this is the constructor
+        int[] values =
         {
-            /* extract */
-            var decimals = new List<decimal>();
-            for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
-                decimals.Add(packedPsqt[i, k]);
-            var psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => 
-                BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
-            
-            for (j = 0; j < 32; j++)
-                psqts[i, j] = psqt[j] * 2; // 2x quantisation
+            -15, -10, -7, -2,
+            -10, -6, -4, 3,
+            -12, -5, 0, 1,
+            -6, -2, -2, -3,
+            -13, -7, -2, 1,
+            -11, -1, 3, 6,
+            -1, 6, 8, 9,
+            -8, -9, 0, 4
+        };
+        // PACK PSQTS
+        var decimals = new List<decimal>();
+        var currentByte = 0;
+        var bytes = new byte[12];
+        for (var valueIndex = 0; valueIndex < values.Length; valueIndex++)
+        {
+            var value = values[valueIndex];
+            if (value < sbyte.MinValue || value > sbyte.MaxValue)
+            {
+                throw new Exception($"Value {value} does not fit");
+            }
+
+            bytes[currentByte] = (byte)value;
+            currentByte++;
+            if (currentByte == 12 || valueIndex == values.Length - 1)
+            {
+                var int1 = BitConverter.ToInt32(bytes, 0);
+                var int2 = BitConverter.ToInt32(bytes, 4);
+                var int3 = BitConverter.ToInt32(bytes, 8);
+                var ints = new[] { int1, int2, int3, 0 };
+                var dec = new decimal(ints);
+                decimals.Add(dec);
+                bytes = new byte[12];
+                currentByte = 0;
+            }
         }
+        
+        foreach (var dec in decimals)
+        {
+            Console.WriteLine(dec);
+        }
+        //
+        // // init psqts - extract from packed
+        // for (; i < 6; i++) // i=0 since this is the constructor
+        // {
+        //     /* extract */
+        //     var decimals = new List<decimal>();
+        //     for (k = 0; k < 3; k++) // can't use i here since it's used in main init function
+        //         decimals.Add(packedPsqt[i, k]);
+        //     var psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => 
+        //         BitConverter.GetBytes(y).Select(z => (sbyte)z))).ToArray();
+        //     
+        //     for (j = 0; j < 32; j++)
+        //         psqts[i, j] = psqt[j] * 2; // 2x quantisation
+        // }
     }
     
     public int Evaluate(Board board, Timer timer)
