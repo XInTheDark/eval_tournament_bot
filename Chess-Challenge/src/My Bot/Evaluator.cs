@@ -81,17 +81,8 @@ public class Evaluator : IEvaluator
                         ulong mob = GetPieceAttacks((PieceType)k, new Square(i), board, color) &
                                     ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
                         j = mobilityValues[k - 3];
-                        scoreAccum += j * GetNumberOfSetBits(mob)
-                            // King attacks
-                            + j + 1 >> 1
-                            * GetNumberOfSetBits(
-                                mob & GetKingAttacks(board.GetKingSquare(!color)));
+                        scoreAccum += j * GetNumberOfSetBits(mob);
                     }
-                    
-                    // /* Open file stuff from cj */
-                    // if ((0x101010101010101UL << i % 8 & ~(1UL << i) & board.GetPieceBitboard(PieceType.Pawn, color)) ==
-                    //     0)
-                    //     score += ____;
 
                     /* PSQT */
                     if (!color) i ^= 56; // flip square if black
