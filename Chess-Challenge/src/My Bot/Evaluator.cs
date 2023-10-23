@@ -101,7 +101,7 @@ public class Evaluator : IEvaluator
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
-                    if (k == 1 && pieceCount <= 24)
+                    if (k == 1 && rank > 3)
                     {
                         // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
                         bool is_passed = true;
