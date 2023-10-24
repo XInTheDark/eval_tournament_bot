@@ -94,27 +94,16 @@ public class Evaluator : IEvaluator
                         scoreAccum -= (26 - pieceCount) * (Abs(4 - rank) + Abs(4 - file));
                     
                     /* Open files, doubled pawns */
-                    if ((0x101010101010101UL << i % 8 & ~(1UL << i) &
+                    if ((0x101010101010101UL << file & ~(1UL << i) &
                          board.GetPieceBitboard(PieceType.Pawn, color)) == 0)
                         scoreAccum += evalValues[3 + k];
                     
                     /* Passed Pawn */
                     // basic detection
                     // this is mainly to guide the engine to push pawns in the endgame.
-                    if (k == 1 && rank > 3)
-                    {
-                        // Observe: if we get the bit 8 bits from the current pawn, and it's set, then it's not a passed pawn.
-                        bool is_passed = true;
-                        for (j = i + 8; j < 64; j += 8) // j + 8 < 64
-                            if (SquareIsSet(pawnBB, new Square(j)))
-                                is_passed = false; // removed break statement to save tokens
-
-                        if (is_passed)
-                            // this is a passed pawn!
-                            // note how i has already been flipped based on stm, in PSQT.
-                            // scale based on rank and piece count.
+                    if (k == 1 && rank > 3 
+                               && (0x101010101010101UL << file & pawnBB) == 0)
                             scoreAccum += rank * 224 / pieceCount;
-                    }
                 } // piece bitboard loop
             } // piece type loop
             
