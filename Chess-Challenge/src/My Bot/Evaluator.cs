@@ -8,7 +8,7 @@ using System.Linq;
 public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[12, 32]; // piece type, square
-    public int i, j, k, scoreAccum, phase, rank, file; // temp variable used to save tokens
+    public int i, j, k, scoreAccum, rank, file; // temp variable used to save tokens
     
     /* VALUES */
     public static readonly int[] evalValues  =
@@ -61,7 +61,7 @@ public class Evaluator : IEvaluator
             pieceCount = GetNumberOfSetBits(board.AllPiecesBitboard);
 
         // Material, PSQT & mobility
-        int mgScore = 0, egScore = 0;
+        int mgScore = 0, egScore = 0, phase = 0;
         
         foreach (bool color in new[] { true, false })
         {
@@ -114,7 +114,7 @@ public class Evaluator : IEvaluator
         } // color loop
         
         phase = phase / 75 - 1067; // (phase - 80000) / 75;
-        score += (mgScore * phase + egScore * (256 - phase)) / 256; // mgScore, egScore are from white POV
+        score += (mgScore * phase + egScore * (256 - phase)) / 256; // from white POV
         
         /* STM */
         score *= stm ? 1 : -1;
