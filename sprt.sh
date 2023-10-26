@@ -2,9 +2,9 @@
 # This is the command to run a SPRT. You use it to test a change to your evaluation function against the old version.
 # You need to change a few things:
 # - This is a bash script, so on linux (and probably mac), you can simply execute this file.
-#   On windows, you should probably write this in a .bat file, use cutechess-cli.exe instead of cutechess-cli and add `pause` at the end
+#   On windows, you should execute the sprt.bat file instead.
 # - Install cutechess if you haven't installed it already.
-# - You should add cutechess-cli to your PATH or change the command below to the location of cutechess-cli (cutechess-cli.exe on windows).
+# - You should add cutechess-cli to your PATH or change the command below to the location of cutechess-cli.
 # - Change the engine names to something that tells you what change you're testing.
 # - If you want, you can change the time control.
 #   The default here is 5+0.05 so that the SPRT finishes faster, but the tournament will use a longer TC.
@@ -16,4 +16,4 @@
 # - For a non-regression test (ie testing that you didn't lose Elo), set elo0 to a negative value and elo1 to 0.
 # Before executing this command, make sure to recompile your project in *Release* mode (recompiling it in Debug mode won't change anything!)
 /usr/games/cutechess-cli -engine name="MyBot" cmd="./Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="cutechess uci MyBot" stderr="error.txt" -engine name="EvilBot" cmd="./Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="cutechess uci EvilBot" -each proto=uci tc=5+0.05 -concurrency 1 -maxmoves 500 -games 2 -repeat -rounds 5000 -ratinginterval 20 -pgnout games.pgn -openings file="UHO.pgn" format=pgn order=random -sprt elo0=0 elo1=10 alpha=0.05 beta=0.1
-# pause # uncomment this on windows and turn this file into a .bat file
+

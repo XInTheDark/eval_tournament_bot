@@ -45,7 +45,7 @@ namespace ChessChallenge.Application
             }
             if (NextButtonInRow("Rules & Help", ref buttonPos, spacing, buttonSize))
             {
-                FileHelper.OpenUrl("https://github.com/SebLague/Chess-Challenge");
+                FileHelper.OpenUrl("https://github.com/toanth/eval-tournament");
             }
             if (NextButtonInRow("Documentation", ref buttonPos, spacing, buttonSize))
             {
@@ -53,7 +53,7 @@ namespace ChessChallenge.Application
             }
             if (NextButtonInRow("Submission Page", ref buttonPos, spacing, buttonSize))
             {
-                FileHelper.OpenUrl("https://forms.gle/6jjj8jxNQ5Ln53ie6");
+                FileHelper.OpenUrl("https://forms.gle/tKg9gU7BYDS8KWrN9");
             }
 
             // Window and quit buttons

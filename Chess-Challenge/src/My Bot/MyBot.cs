@@ -1,5 +1,6 @@
 ﻿using ChessChallenge.API;
 using System;
+using System.Diagnostics;
 
 /// <summary>
 /// This search implementation is a modified version of JW's example bot:
@@ -10,6 +11,9 @@ using System;
 public class MyBot : IChessBot
 {
     Move bestmoveRoot = Move.NullMove;
+
+    private static readonly int WIN = 30_000;
+    private static readonly int MATE = 31_000;
 
     private IEvaluator evaluator = new Evaluator();
 
@@ -32,7 +36,7 @@ public class MyBot : IChessBot
         ulong key = board.ZobristKey;
         bool qsearch = depth <= 0;
         bool notRoot = ply > 0;
-        int best = -30002;
+        int best = -MATE - 2;
 
         // Check for repetition (this is much more important than material and 50 move rule draws)
         if(board.IsDraw())
@@ -45,9 +49,10 @@ public class MyBot : IChessBot
             entry.bound == 3 // exact score
                 || entry.bound == 2 && entry.score >= beta // lower bound, fail high
                 || entry.bound == 1 && entry.score <= alpha // upper bound, fail low
-        )) return entry.score;
+        )) return entry.score > WIN ? entry.score - ply : entry.score < -WIN ? entry.score + ply : entry.score;
 
         int eval = evaluator.Evaluate(board, timer);
+        Debug.Assert(Math.Abs(eval) <= WIN);
 
         // Quiescence search is in the same function as negamax to save tokens
         if(qsearch) {
@@ -86,7 +91,7 @@ public class MyBot : IChessBot
             int score = -Search(board, timer, -beta, -alpha, depth - 1, ply + 1);
             board.UndoMove(move);
             
-            if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) return 30001;
+            if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) return MATE + 1;
 
             // New best move
             if(score > best) {
@@ -104,13 +109,15 @@ public class MyBot : IChessBot
         }
 
         // (Check/Stale)mate
-        if (board.IsInCheckmate()) return -30000 + ply;
+        if (board.IsInCheckmate()) return -MATE + ply;
 
         // Did we fail high/low or get an exact score?
         int bound = best >= beta ? 2 : best > origAlpha ? 3 : 1;
 
+        int ttScore = best > WIN ? best + ply : best < -WIN ? best - ply : best;
+        Debug.Assert(Math.Abs(ttScore) <= MATE);
         // Push to TT
-        tt[key % entries] = new TTEntry(key, bestMove, depth, best, bound);
+        tt[key % entries] = new TTEntry(key, bestMove, depth, ttScore, bound);
 
         return best;
     }
@@ -121,7 +128,7 @@ public class MyBot : IChessBot
         int score = 0;
         // https://www.chessprogramming.org/Iterative_Deepening
         for(int depth = 1; depth <= 50; depth++) {
-            int iterationScore = Search(board, timer, -30000, 30000, depth, 0);
+            int iterationScore = Search(board, timer, -MATE, MATE, depth, 0);
 
             // Out of time
             if(timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
@@ -129,7 +136,7 @@ public class MyBot : IChessBot
             score = iterationScore;
         }
 
-        if (Math.Abs(score) > 30_000)
+        if (Math.Abs(score) > MATE)
         {
             Console.Error.WriteLine("WARNING: SCORE OUTSIDE OF BOUNDS: {0}", score);
         }
