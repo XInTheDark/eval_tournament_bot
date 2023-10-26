@@ -8,7 +8,7 @@ using System.Linq;
 public class Evaluator : IEvaluator
 {
     public static int[,] psqts = new int[12, 32]; // piece type, square
-    public int i, j, k, scoreAccum, rank, file; // temp variable used to save tokens
+    public int i, j, k, rank, file; // temp variable used to save tokens
     
     /* VALUES */
     public static readonly int[] evalValues  =
@@ -58,17 +58,15 @@ public class Evaluator : IEvaluator
         bool stm = board.IsWhiteToMove;
 
         int score = 0,
-            pieceCount = GetNumberOfSetBits(board.AllPiecesBitboard);
-
-        // Material, PSQT & mobility
-        int mgScore = 0, egScore = 0, phase = 0;
+            pieceCount = GetNumberOfSetBits(board.AllPiecesBitboard),
+            mgScore = 0, egScore = 0, phase = 0; // Material, PSQT & mobility
         
         foreach (bool color in new[] { true, false })
         {
-            int mg = 0, eg = 0;
+            int mg = 0, eg = 0, scoreAccum = 0;
             ulong pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
             
-            scoreAccum = k = 0;
+            k = 0;
             while (k++ < 6) // piece type, k -> 1 to 6
             {
                 ulong bitboard = board.GetPieceBitboard((PieceType)k, color);
