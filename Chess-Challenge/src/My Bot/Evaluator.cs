@@ -82,7 +82,7 @@ public class Evaluator : IEvaluator
                     i = ClearAndGetIndexOfLSB(ref bitboard); // square
 
                     /* Mobility */
-                    // The more squares you are able to attack, the more flexible your position is.
+                    // number of squares attacked
                     if (k > 2)
                     {
                         // skip pawns and knights
@@ -120,8 +120,8 @@ public class Evaluator : IEvaluator
         score *= stm ? 1 : -1;
         
         /* Tempo */
-        // Give bonus to stm if not in check.
-        score += board.IsInCheck() ? 0 : 15;
+        // Give bonus to stm.
+        score += 15;
 
         return score;
     }
