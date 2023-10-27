@@ -2,7 +2,6 @@ using ChessChallenge.API;
 using static ChessChallenge.API.BitboardHelper;
 using System;
 using static System.Math;
-using System.Collections.Generic;
 using System.Linq;
 
 public class Evaluator : IEvaluator
@@ -41,7 +40,7 @@ public class Evaluator : IEvaluator
         for (; i < 12; i++) // i=0 since this is the constructor
         {
             /* extract */
-            var decimals = new List<decimal>();
+            var decimals = new System.Collections.Generic.List<decimal>();
             for (k = 0; k < 3; k++)
                 decimals.Add(packedPsqt[i * 3 + k]);
             var psqt = decimals.SelectMany(x => decimal.GetBits(x).Take(3).SelectMany(y => 
@@ -55,8 +54,6 @@ public class Evaluator : IEvaluator
     public int Evaluate(Board board, Timer timer)
     {
         // init variables
-        bool stm = board.IsWhiteToMove;
-
         int score = 0,
             pieceCount = GetNumberOfSetBits(board.AllPiecesBitboard),
             mgScore = 0, egScore = 0, phase = 0; // Material, PSQT & mobility
@@ -65,6 +62,10 @@ public class Evaluator : IEvaluator
         {
             int mg = 0, eg = 0, scoreAccum = 0;
             ulong pawnBB = board.GetPieceBitboard(PieceType.Pawn, !color); // opponent's pawns
+            
+            /* Bishop pair */
+            if (GetNumberOfSetBits(board.GetPieceBitboard(PieceType.Bishop, color)) > 1)
+                scoreAccum += 40;
             
             k = 0;
             while (k++ < 6) // piece type, k -> 1 to 6
@@ -84,10 +85,10 @@ public class Evaluator : IEvaluator
                     if (k > 2)
                     {
                         // skip pawns and knights
-                        ulong mob = GetPieceAttacks((PieceType)k, new Square(i), board, color) &
-                                    ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
-                        j = evalValues[k - 3];
-                        scoreAccum += j * GetNumberOfSetBits(mob);
+                        scoreAccum += evalValues[k - 3] * GetNumberOfSetBits(
+                            GetPieceAttacks((PieceType)k, new Square(i), board, color) &
+                                ~(color ? board.WhitePiecesBitboard : board.BlackPiecesBitboard)
+                            );
                     }
 
                     /* PSQT */
@@ -114,13 +115,7 @@ public class Evaluator : IEvaluator
         phase = phase / 75 - 1067; // (phase - 80000) / 75;
         score += (mgScore * phase + egScore * (256 - phase)) / 256; // from white POV
         
-        /* STM */
-        score *= stm ? 1 : -1;
-        
-        /* Tempo */
-        // Give bonus to stm.
-        score += 15;
-
-        return score;
+        /* STM, tempo */
+        return score * (board.IsWhiteToMove ? 1 : -1) + 15;
     }
 }
