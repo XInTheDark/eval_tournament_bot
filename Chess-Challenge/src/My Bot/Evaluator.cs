@@ -1,3 +1,5 @@
+/* IM Vizer: version 9c3beec8 */
+
 using ChessChallenge.API;
 using static ChessChallenge.API.BitboardHelper;
 using System;
