@@ -1,4 +1,4 @@
-/* IM Vizer: version 9c3beec8 */
+/* IM Vizer: submission version */
 
 using ChessChallenge.API;
 using static ChessChallenge.API.BitboardHelper;
@@ -15,7 +15,7 @@ public class Evaluator : IEvaluator
     public static readonly int[] evalValues  =
     {
         6, 5, 3, 0, // mobility
-        150, 801, 852, 1307, 2581, 40000 // material
+        208, 781, 825, 1276, 2538, 40000 // material
     };
     
     // Packed Psqt
@@ -114,7 +114,7 @@ public class Evaluator : IEvaluator
             
         } // color loop
         
-        phase = phase / 75 - 1067; // (phase - 80000) / 75;
+        phase = phase / 78 - 1026; // (phase - 80000) / 78;
         score += (mgScore * phase + egScore * (256 - phase)) / 256; // from white POV
         
         /* STM, tempo */
